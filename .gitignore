@@ -1,0 +1,27 @@
+# Build folder
+build/
+
+# Compiled object/dependency files
+*.o
+*.d
+
+# Firmware output files
+*.elf
+*.hex
+*.bin
+*.map
+
+# Static libraries / archives
+*.a
+
+# VS Code temporary C/C++ cache
+.vscode/ipch/
+.vscode/.browse.VC.db*
+.vscode/*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
