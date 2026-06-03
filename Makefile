@@ -30,7 +30,6 @@ src/drivers/joystick.c \
 src/drivers/button.c \
 src/drivers/sound.c \
 src/game/game.c \
-src/game/game_state.c \
 src/game/player.c \
 src/game/bullet.c \
 src/game/enemy.c \
