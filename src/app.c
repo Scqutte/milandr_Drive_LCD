@@ -18,30 +18,32 @@ void app_init(void)
 
 void app_update(void)
 {
+    static uint8_t previous_fire_pressed;
     JoystickState joystick = joystick_read();
     uint8_t fire_pressed = button_fire_pressed() || joystick.pressed;
+    uint8_t fire_event = fire_pressed && !previous_fire_pressed;
 
     switch (game_get_state()) {
         case GAME_STATE_MENU:
-            menu_update(joystick, fire_pressed);
+            menu_update(joystick, fire_event);
             if (menu_start_requested()) {
                 game_start();
             }
             break;
 
         case GAME_STATE_PLAYING:
-            game_update(joystick, fire_pressed);
+            game_update(joystick, fire_event);
             break;
 
         case GAME_STATE_WIN:
-            screen_win_update(fire_pressed);
+            screen_win_update(fire_event);
             if (screen_win_restart_requested()) {
                 game_set_state(GAME_STATE_MENU);
             }
             break;
 
         case GAME_STATE_GAME_OVER:
-            screen_game_over_update(fire_pressed);
+            screen_game_over_update(fire_event);
             if (screen_game_over_restart_requested()) {
                 game_set_state(GAME_STATE_MENU);
             }
@@ -53,6 +55,7 @@ void app_update(void)
     }
 
     sound_update();
+    previous_fire_pressed = fire_pressed;
 }
 
 void app_render(void)

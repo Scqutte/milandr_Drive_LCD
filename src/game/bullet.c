@@ -33,7 +33,7 @@ void bullets_update(Bullet bullets[MAX_BULLETS])
 
     for (i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
-            bullets[i].x++;
+            bullets[i].x += BULLET_SPEED;
 
             if (bullets[i].x >= SCREEN_WIDTH) {
                 bullets[i].active = 0;
