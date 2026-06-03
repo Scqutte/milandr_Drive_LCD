@@ -22,6 +22,25 @@ C_DEFS = \
 
 C_SOURCES = \
 main.c \
+src/app.c \
+src/system/board.c \
+src/system/clock.c \
+src/system/tick.c \
+src/drivers/lcd.c \
+src/drivers/joystick.c \
+src/drivers/button.c \
+src/drivers/sound.c \
+src/game/game.c \
+src/game/game_state.c \
+src/game/player.c \
+src/game/bullet.c \
+src/game/enemy.c \
+src/game/collision.c \
+src/game/score.c \
+src/ui/menu.c \
+src/ui/hud.c \
+src/ui/screen_game_over.c \
+src/ui/screen_win.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_port.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_rst_clk.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_power.c \
@@ -32,6 +51,7 @@ $(MDR_DIR)/Libraries/CMSIS/CM3/DeviceSupport/MDR32F9Qx/startup/gcc/startup_MDR32
 
 INCLUDES = \
 -I. \
+-Iinc \
 -I$(MDR_DIR)/Config \
 -I$(MDR_DIR)/Libraries/CMSIS/CM3/CoreSupport \
 -I$(MDR_DIR)/Libraries/CMSIS/CM3/DeviceSupport/MDR32F9Qx/inc \

@@ -1,1 +1,18 @@
+#ifndef CONFIG_H
+#define CONFIG_H
 
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define GAME_TARGET_FPS 30
+#define PLAYER_START_X 12
+#define PLAYER_START_Y 32
+#define PLAYER_LIVES 3
+
+#define MAX_BULLETS 8
+#define MAX_ENEMIES 8
+
+#define JOYSTICK_CENTER 2048
+#define JOYSTICK_DEADZONE 350
+
+#endif
