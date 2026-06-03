@@ -7,8 +7,7 @@
 #include "MDR32F9Qx_rst_clk.h"
 
 #define JOYSTICK_PORT MDR_PORTD
-#define JOYSTICK_AXIS_PINS (PORT_Pin_2 | PORT_Pin_3)
-#define JOYSTICK_BUTTON_PIN PORT_Pin_1
+#define JOYSTICK_AXIS_PINS (PORT_Pin_0 | PORT_Pin_3)
 #define ADC_RESULT_MASK 0x0FFFU
 #define ADC_TIMEOUT 100000U
 
@@ -26,24 +25,6 @@ static void joystick_init_axis_pins(void)
     init.PORT_FUNC = PORT_FUNC_PORT;
     init.PORT_SPEED = PORT_OUTPUT_OFF;
     init.PORT_MODE = PORT_MODE_ANALOG;
-
-    PORT_Init(JOYSTICK_PORT, &init);
-}
-
-static void joystick_init_button_pin(void)
-{
-    PORT_InitTypeDef init;
-
-    init.PORT_Pin = JOYSTICK_BUTTON_PIN;
-    init.PORT_OE = PORT_OE_IN;
-    init.PORT_PULL_UP = PORT_PULL_UP_ON;
-    init.PORT_PULL_DOWN = PORT_PULL_DOWN_OFF;
-    init.PORT_PD_SHM = PORT_PD_SHM_OFF;
-    init.PORT_PD = PORT_PD_DRIVER;
-    init.PORT_GFEN = PORT_GFEN_OFF;
-    init.PORT_FUNC = PORT_FUNC_PORT;
-    init.PORT_SPEED = PORT_OUTPUT_OFF;
-    init.PORT_MODE = PORT_MODE_DIGITAL;
 
     PORT_Init(JOYSTICK_PORT, &init);
 }
@@ -86,7 +67,6 @@ void joystick_init(void)
     RST_CLK_ADCclkEnable(ENABLE);
 
     joystick_init_axis_pins();
-    joystick_init_button_pin();
 
     ADC_StructInit(&adc_init);
     ADC_Init(&adc_init);
@@ -99,7 +79,7 @@ void joystick_init(void)
     adc1_init.ADC_Channels = 0;
     adc1_init.ADC_LevelControl = ADC_LEVEL_CONTROL_Disable;
     adc1_init.ADC_LowLevel = 0;
-    adc1_init.ADC_HighLevel = 0x0FFF;
+    adc1_init.ADC_HighLevel = 0x07FF;
     adc1_init.ADC_VRefSource = ADC_VREF_SOURCE_INTERNAL;
     adc1_init.ADC_IntVRefSource = ADC_INT_VREF_SOURCE_INEXACT;
     adc1_init.ADC_Prescaler = ADC_CLK_div_16;
@@ -117,7 +97,7 @@ JoystickState joystick_read(void)
 
     state.x = joystick_axis_to_step(raw_x);
     state.y = joystick_axis_to_step(raw_y);
-    state.pressed = (PORT_ReadInputDataBit(JOYSTICK_PORT, JOYSTICK_BUTTON_PIN) == 0U) ? 1U : 0U;
+    state.pressed = 0;
 
     return state;
 }

@@ -5,7 +5,7 @@
 #include "MDR32F9Qx_rst_clk.h"
 
 #define FIRE_BUTTON_PORT MDR_PORTD
-#define FIRE_BUTTON_PIN PORT_Pin_0
+#define FIRE_BUTTON_PIN PORT_Pin_1
 
 void button_init(void)
 {
