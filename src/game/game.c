@@ -51,9 +51,18 @@ void game_update(JoystickState joystick, uint8_t fire_pressed)
 
 void game_render(void)
 {
+    uint8_t i;
+
     lcd_clear();
     hud_render(score_get(), player.lives);
     lcd_draw_pixel((uint8_t)player.x, (uint8_t)player.y, 1);
+
+    for (i = 0; i < MAX_BULLETS; i++) {
+        if (bullets[i].active) {
+            lcd_draw_pixel((uint8_t)bullets[i].x, (uint8_t)bullets[i].y, 1);
+        }
+    }
+
     lcd_flush();
 }
 
