@@ -16,7 +16,6 @@ OPT = -Og
 DEBUG = 1
 
 C_DEFS = \
-# -DUSE_MDR1986VE9x \
 -D__STARTUP_CLEAR_BSS \
 -D__START=main
 
