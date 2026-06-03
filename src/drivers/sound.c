@@ -75,7 +75,8 @@ void sound_init(void)
     RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTE | RST_CLK_PCLK_DAC, ENABLE);
 
     sound_init_pins();
-    DAC_Init(DAC_SYNC_MODE_Independent, DAC1_AVCC, DAC2_AVCC);
+    /* Independent DAC mode, AVCC reference for both channels. */
+    DAC_Init(0U, 0U, 0U);
     DAC1_Cmd(ENABLE);
     DAC2_Cmd(ENABLE);
     sound_write(SOUND_DAC_CENTER);

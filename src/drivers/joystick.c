@@ -9,6 +9,7 @@
 #define JOYSTICK_PORT MDR_PORTD
 #define JOYSTICK_AXIS_PINS (PORT_Pin_0 | PORT_Pin_3)
 #define ADC_RESULT_MASK 0x0FFFU
+#define ADC1_EOC_FLAG (1U << 2)
 #define ADC_TIMEOUT 100000U
 
 static void joystick_init_axis_pins(void)
@@ -36,7 +37,7 @@ static uint16_t joystick_read_adc(uint32_t channel)
     ADC1_SetChannel(channel);
     ADC1_Start();
 
-    while ((ADC1_GetFlagStatus(ADCx_FLAG_END_OF_CONVERSION) == RESET) && (timeout > 0U)) {
+    while (((ADC1_GetStatus() & ADC1_EOC_FLAG) == 0U) && (timeout > 0U)) {
         timeout--;
     }
 
