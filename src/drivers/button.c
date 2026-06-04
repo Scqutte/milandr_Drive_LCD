@@ -4,16 +4,22 @@
 #include "MDR32F9Qx_port.h"
 #include "MDR32F9Qx_rst_clk.h"
 
-#define FIRE_BUTTON_PORT MDR_PORTD
-#define FIRE_BUTTON_PIN PORT_Pin_1
+#define BUTTON_LEFT_PORT MDR_PORTB
+#define BUTTON_LEFT_PIN PORT_Pin_4
+#define BUTTON_SELECT_PORT MDR_PORTC
+#define BUTTON_SELECT_PIN PORT_Pin_0
+#define BUTTON_DOWN_PORT MDR_PORTD
+#define BUTTON_DOWN_PIN PORT_Pin_0
+#define BUTTON_RIGHT_PORT MDR_PORTD
+#define BUTTON_RIGHT_PIN PORT_Pin_2
+#define BUTTON_UP_PORT MDR_PORTE
+#define BUTTON_UP_PIN PORT_Pin_3
 
-void button_init(void)
+static void button_init_pin(MDR_PORT_TypeDef *port, uint32_t pin)
 {
     PORT_InitTypeDef init;
 
-    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTD, ENABLE);
-
-    init.PORT_Pin = FIRE_BUTTON_PIN;
+    init.PORT_Pin = pin;
     init.PORT_OE = PORT_OE_IN;
     init.PORT_PULL_UP = PORT_PULL_UP_ON;
     init.PORT_PULL_DOWN = PORT_PULL_DOWN_OFF;
@@ -24,10 +30,50 @@ void button_init(void)
     init.PORT_SPEED = PORT_OUTPUT_OFF;
     init.PORT_MODE = PORT_MODE_DIGITAL;
 
-    PORT_Init(FIRE_BUTTON_PORT, &init);
+    PORT_Init(port, &init);
+}
+
+static uint8_t button_pressed(MDR_PORT_TypeDef *port, uint32_t pin)
+{
+    return (PORT_ReadInputDataBit(port, pin) == 0U) ? 1U : 0U;
+}
+
+void button_init(void)
+{
+    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTB |
+                    RST_CLK_PCLK_PORTC |
+                    RST_CLK_PCLK_PORTD |
+                    RST_CLK_PCLK_PORTE,
+                    ENABLE);
+
+    button_init_pin(BUTTON_LEFT_PORT, BUTTON_LEFT_PIN);
+    button_init_pin(BUTTON_SELECT_PORT, BUTTON_SELECT_PIN);
+    button_init_pin(BUTTON_DOWN_PORT, BUTTON_DOWN_PIN);
+    button_init_pin(BUTTON_RIGHT_PORT, BUTTON_RIGHT_PIN);
+    button_init_pin(BUTTON_UP_PORT, BUTTON_UP_PIN);
 }
 
 uint8_t button_fire_pressed(void)
 {
-    return (PORT_ReadInputDataBit(FIRE_BUTTON_PORT, FIRE_BUTTON_PIN) == 0U) ? 1U : 0U;
+    return button_pressed(BUTTON_SELECT_PORT, BUTTON_SELECT_PIN);
+}
+
+uint8_t button_left_pressed(void)
+{
+    return button_pressed(BUTTON_LEFT_PORT, BUTTON_LEFT_PIN);
+}
+
+uint8_t button_right_pressed(void)
+{
+    return button_pressed(BUTTON_RIGHT_PORT, BUTTON_RIGHT_PIN);
+}
+
+uint8_t button_up_pressed(void)
+{
+    return button_pressed(BUTTON_UP_PORT, BUTTON_UP_PIN);
+}
+
+uint8_t button_down_pressed(void)
+{
+    return button_pressed(BUTTON_DOWN_PORT, BUTTON_DOWN_PIN);
 }

@@ -39,7 +39,6 @@ src/ui/menu.c \
 src/ui/hud.c \
 src/ui/screen_game_over.c \
 src/ui/screen_win.c \
-$(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_adc.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_dac.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_port.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_rst_clk.c \
@@ -84,6 +83,9 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
+
+flash: all
+>openocd -s . -f openocd/openocd_flash.cfg -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) | $(BUILD_DIR)
 >$(CC) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@

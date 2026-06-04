@@ -1,16 +1,16 @@
 #include "drivers/lcd.h"
 
 #include "config.h"
-#include "MDR32F9Qx_config.h"
 #include "MDR32F9Qx_port.h"
 #include "MDR32F9Qx_rst_clk.h"
 
 #define LCD_DATA_PORT MDR_PORTA
+#define LCD_STB_PORT MDR_PORTD
 #define LCD_CTRL_PORT MDR_PORTF
 
-#define LCD_DATA_PINS (PORT_Pin_0 | PORT_Pin_1 | PORT_Pin_2 | PORT_Pin_3 | \
-                       PORT_Pin_4 | PORT_Pin_5 | PORT_Pin_6 | PORT_Pin_7)
+#define LCD_DATA_MASK 0x00FFU
 
+#define LCD_STB_PIN PORT_Pin_3
 #define LCD_E1_PIN PORT_Pin_0
 #define LCD_E2_PIN PORT_Pin_1
 #define LCD_RES_PIN PORT_Pin_2
@@ -28,72 +28,104 @@
 
 static uint8_t framebuffer[LCD_PAGES][SCREEN_WIDTH];
 
-static void lcd_delay(void)
+static void lcd_delay_short(void)
 {
-    volatile uint16_t i;
+    volatile uint32_t i;
 
-    for (i = 0; i < 80; i++) {
+    for (i = 0; i < 80U; i++) {
     }
 }
 
-static void lcd_init_port(MDR_PORT_TypeDef *port, uint16_t pins)
+static void lcd_delay_long(void)
+{
+    volatile uint32_t i;
+
+    for (i = 0; i < 20000U; i++) {
+    }
+}
+
+static void lcd_init_port(MDR_PORT_TypeDef *port, uint16_t pins, uint32_t output)
 {
     PORT_InitTypeDef init;
 
     init.PORT_Pin = pins;
-    init.PORT_OE = PORT_OE_OUT;
+    init.PORT_OE = output ? PORT_OE_OUT : PORT_OE_IN;
     init.PORT_PULL_UP = PORT_PULL_UP_OFF;
     init.PORT_PULL_DOWN = PORT_PULL_DOWN_OFF;
     init.PORT_PD_SHM = PORT_PD_SHM_OFF;
     init.PORT_PD = PORT_PD_DRIVER;
     init.PORT_GFEN = PORT_GFEN_OFF;
     init.PORT_FUNC = PORT_FUNC_PORT;
-    init.PORT_SPEED = PORT_SPEED_FAST;
+    init.PORT_SPEED = PORT_SPEED_SLOW;
     init.PORT_MODE = PORT_MODE_DIGITAL;
 
     PORT_Init(port, &init);
 }
 
-static void lcd_write_bus(uint8_t value)
+static void lcd_data_output(void)
 {
-    PORT_Write(LCD_DATA_PORT, value);
+    LCD_DATA_PORT->OE |= LCD_DATA_MASK;
 }
 
-static void lcd_set_data_mode(uint8_t is_data)
+static void lcd_write_bus(uint8_t value)
 {
+    LCD_DATA_PORT->RXTX = (LCD_DATA_PORT->RXTX & ~LCD_DATA_MASK) | value;
+}
+
+static void lcd_select_chip(uint8_t chip)
+{
+    if (chip == 0U) {
+        PORT_SetBits(LCD_CTRL_PORT, LCD_E1_PIN);
+    } else {
+        PORT_SetBits(LCD_CTRL_PORT, LCD_E2_PIN);
+    }
+}
+
+static void lcd_release_chip(uint8_t chip)
+{
+    if (chip == 0U) {
+        PORT_ResetBits(LCD_CTRL_PORT, LCD_E1_PIN);
+    } else {
+        PORT_ResetBits(LCD_CTRL_PORT, LCD_E2_PIN);
+    }
+}
+
+static void lcd_pulse_strobe(void)
+{
+    lcd_delay_short();
+    PORT_SetBits(LCD_STB_PORT, LCD_STB_PIN);
+    lcd_delay_short();
+    PORT_ResetBits(LCD_STB_PORT, LCD_STB_PIN);
+    lcd_delay_short();
+}
+
+static void lcd_write_raw(uint8_t chip, uint8_t value, uint8_t is_data)
+{
+    lcd_select_chip(chip);
+
     if (is_data) {
         PORT_SetBits(LCD_CTRL_PORT, LCD_A0_PIN);
     } else {
         PORT_ResetBits(LCD_CTRL_PORT, LCD_A0_PIN);
     }
-}
 
-static void lcd_pulse(uint8_t chip)
-{
-    uint32_t enable_pin = (chip == 0U) ? LCD_E1_PIN : LCD_E2_PIN;
-
-    PORT_SetBits(LCD_CTRL_PORT, enable_pin);
-    lcd_delay();
-    PORT_ResetBits(LCD_CTRL_PORT, enable_pin);
-    lcd_delay();
-}
-
-static void lcd_write_raw(uint8_t chip, uint8_t value, uint8_t is_data)
-{
     PORT_ResetBits(LCD_CTRL_PORT, LCD_RW_PIN);
-    lcd_set_data_mode(is_data);
+    lcd_data_output();
     lcd_write_bus(value);
-    lcd_pulse(chip);
+    lcd_pulse_strobe();
+
+    PORT_ResetBits(LCD_CTRL_PORT, LCD_A0_PIN | LCD_RW_PIN);
+    lcd_release_chip(chip);
 }
 
 static void lcd_write_command(uint8_t chip, uint8_t command)
 {
-    lcd_write_raw(chip, command, 0);
+    lcd_write_raw(chip, command, 0U);
 }
 
 static void lcd_write_data(uint8_t chip, uint8_t data)
 {
-    lcd_write_raw(chip, data, 1);
+    lcd_write_raw(chip, data, 1U);
 }
 
 static const uint8_t *lcd_font_columns(char ch)
@@ -162,26 +194,38 @@ static const uint8_t *lcd_font_columns(char ch)
 
 void lcd_init(void)
 {
-    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTA | RST_CLK_PCLK_PORTF, ENABLE);
+    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTA | RST_CLK_PCLK_PORTD | RST_CLK_PCLK_PORTF, ENABLE);
 
-    lcd_init_port(LCD_DATA_PORT, LCD_DATA_PINS);
-    lcd_init_port(LCD_CTRL_PORT,
-                  LCD_E1_PIN | LCD_E2_PIN | LCD_RES_PIN | LCD_RW_PIN | LCD_A0_PIN);
+    lcd_init_port(LCD_DATA_PORT, (uint16_t)LCD_DATA_MASK, 1U);
+    lcd_init_port(LCD_STB_PORT, LCD_STB_PIN, 1U);
+    lcd_init_port(LCD_CTRL_PORT, LCD_E1_PIN | LCD_E2_PIN | LCD_RES_PIN | LCD_RW_PIN | LCD_A0_PIN, 1U);
 
+    PORT_ResetBits(LCD_STB_PORT, LCD_STB_PIN);
     PORT_ResetBits(LCD_CTRL_PORT, LCD_E1_PIN | LCD_E2_PIN | LCD_RW_PIN | LCD_A0_PIN);
 
     PORT_ResetBits(LCD_CTRL_PORT, LCD_RES_PIN);
-    lcd_delay();
+    lcd_delay_long();
     PORT_SetBits(LCD_CTRL_PORT, LCD_RES_PIN);
-    lcd_delay();
+    lcd_delay_long();
 
-    lcd_write_command(0, LCD_CMD_DISPLAY_ON);
-    lcd_write_command(1, LCD_CMD_DISPLAY_ON);
-    lcd_write_command(0, LCD_CMD_START_LINE);
-    lcd_write_command(1, LCD_CMD_START_LINE);
+    lcd_write_command(0U, LCD_CMD_DISPLAY_ON);
+    lcd_write_command(1U, LCD_CMD_DISPLAY_ON);
+    lcd_write_command(0U, LCD_CMD_START_LINE);
+    lcd_write_command(1U, LCD_CMD_START_LINE);
 
     lcd_clear();
     lcd_flush();
+}
+
+uint8_t lcd_map_count(void)
+{
+    return 1U;
+}
+
+void lcd_select_map(uint8_t map)
+{
+    (void)map;
+    lcd_init();
 }
 
 void lcd_clear(void)
@@ -189,9 +233,9 @@ void lcd_clear(void)
     uint8_t page;
     uint8_t x;
 
-    for (page = 0; page < LCD_PAGES; page++) {
-        for (x = 0; x < SCREEN_WIDTH; x++) {
-            framebuffer[page][x] = 0;
+    for (page = 0U; page < LCD_PAGES; page++) {
+        for (x = 0U; x < SCREEN_WIDTH; x++) {
+            framebuffer[page][x] = 0U;
         }
     }
 }
@@ -202,12 +246,12 @@ void lcd_draw_text(uint8_t x, uint8_t y, const char *text)
         uint8_t column;
         const uint8_t *glyph = lcd_font_columns(*text);
 
-        for (column = 0; column < 5; column++) {
+        for (column = 0U; column < 5U; column++) {
             uint8_t row;
 
-            for (row = 0; row < 7; row++) {
+            for (row = 0U; row < 7U; row++) {
                 if ((glyph[column] & (1U << row)) != 0U) {
-                    lcd_draw_pixel((uint8_t)(x + column), (uint8_t)(y + row), 1);
+                    lcd_draw_pixel((uint8_t)(x + column), (uint8_t)(y + row), 1U);
                 }
             }
         }
@@ -242,13 +286,34 @@ void lcd_flush(void)
     uint8_t page;
     uint8_t x;
 
-    for (chip = 0; chip < 2U; chip++) {
-        for (page = 0; page < LCD_PAGES; page++) {
+    for (chip = 0U; chip < 2U; chip++) {
+        for (page = 0U; page < LCD_PAGES; page++) {
             lcd_write_command(chip, (uint8_t)(LCD_CMD_SET_PAGE | page));
             lcd_write_command(chip, LCD_CMD_SET_Y);
 
-            for (x = 0; x < LCD_CHIP_WIDTH; x++) {
+            for (x = 0U; x < LCD_CHIP_WIDTH; x++) {
                 lcd_write_data(chip, framebuffer[page][x + (chip * LCD_CHIP_WIDTH)]);
+            }
+        }
+    }
+}
+
+void lcd_fill_raw(uint8_t value)
+{
+    uint8_t chip;
+    uint8_t page;
+    uint8_t x;
+
+    for (chip = 0U; chip < 2U; chip++) {
+        lcd_write_command(chip, LCD_CMD_DISPLAY_ON);
+        lcd_write_command(chip, LCD_CMD_START_LINE);
+
+        for (page = 0U; page < LCD_PAGES; page++) {
+            lcd_write_command(chip, (uint8_t)(LCD_CMD_SET_PAGE | page));
+            lcd_write_command(chip, LCD_CMD_SET_Y);
+
+            for (x = 0U; x < LCD_CHIP_WIDTH; x++) {
+                lcd_write_data(chip, value);
             }
         }
     }

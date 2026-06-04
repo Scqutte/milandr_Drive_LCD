@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Milandr SWD",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/milandr_test.elf",
+            "configFiles": [
+                "${workspaceFolder}/openocd/openocd_flash.cfg"
+            ],
+            "device": "Cortex-M3",
+            "runToEntryPoint": "main"
+        }
+    ]
+}
