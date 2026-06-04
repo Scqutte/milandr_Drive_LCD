@@ -32,7 +32,7 @@ static void lcd_delay_short(void)
 {
     volatile uint32_t i;
 
-    for (i = 0; i < 80U; i++) {
+    for (i = 0; i < 5U; i++) {
     }
 }
 

@@ -21,8 +21,10 @@ void menu_update(JoystickState joystick, uint8_t select_pressed)
 void menu_render(void)
 {
     lcd_clear();
-    lcd_draw_text(0, 0, "Milandr Plane");
-    lcd_draw_text(0, 16, "Start");
+    lcd_draw_text(0, 0, "FLASH OK 1600");
+    lcd_draw_text(0, 16, "Plane SAFE");
+    lcd_draw_text(0, 32, "SEL fire");
+    lcd_draw_text(0, 48, "PE3 UP PE6 DN");
     lcd_flush();
 }
 

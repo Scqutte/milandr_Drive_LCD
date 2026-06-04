@@ -14,7 +14,7 @@ static int16_t enemy_spawn_y(uint8_t index)
 static void enemy_spawn(Enemy *enemy, uint8_t index)
 {
     enemy->active = 1;
-    enemy->x = (int16_t)(SCREEN_WIDTH - 1 - ((index % 4U) * 12U));
+    enemy->x = (int16_t)(SCREEN_WIDTH - 1 + ((index % 4U) * 18U));
     enemy->y = enemy_spawn_y((uint8_t)(enemy_spawn_index + index));
 }
 

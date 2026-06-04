@@ -15,14 +15,6 @@ JoystickState joystick_read(void)
     state.y = 0;
     state.pressed = 0;
 
-    if (button_left_pressed()) {
-        state.x -= PLAYER_SPEED;
-    }
-
-    if (button_right_pressed()) {
-        state.x += PLAYER_SPEED;
-    }
-
     if (button_up_pressed()) {
         state.y -= PLAYER_SPEED;
     }

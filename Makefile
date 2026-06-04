@@ -85,7 +85,7 @@ vpath %.s $(sort $(dir $(ASM_SOURCES)))
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 
 flash: all
->openocd -s . -f openocd/openocd_flash.cfg -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
+>openocd -s . -f openocd/openocd_flash.cfg -c "adapter speed 1000" -c "program $(BUILD_DIR)/$(TARGET).elf verify exit"
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) | $(BUILD_DIR)
 >$(CC) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@

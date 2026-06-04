@@ -4,14 +4,10 @@
 #include "MDR32F9Qx_port.h"
 #include "MDR32F9Qx_rst_clk.h"
 
-#define BUTTON_LEFT_PORT MDR_PORTB
-#define BUTTON_LEFT_PIN PORT_Pin_4
 #define BUTTON_SELECT_PORT MDR_PORTC
 #define BUTTON_SELECT_PIN PORT_Pin_0
-#define BUTTON_DOWN_PORT MDR_PORTD
-#define BUTTON_DOWN_PIN PORT_Pin_0
-#define BUTTON_RIGHT_PORT MDR_PORTD
-#define BUTTON_RIGHT_PIN PORT_Pin_2
+#define BUTTON_DOWN_PORT MDR_PORTE
+#define BUTTON_DOWN_PIN PORT_Pin_6
 #define BUTTON_UP_PORT MDR_PORTE
 #define BUTTON_UP_PIN PORT_Pin_3
 
@@ -40,16 +36,12 @@ static uint8_t button_pressed(MDR_PORT_TypeDef *port, uint32_t pin)
 
 void button_init(void)
 {
-    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTB |
-                    RST_CLK_PCLK_PORTC |
-                    RST_CLK_PCLK_PORTD |
+    RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTC |
                     RST_CLK_PCLK_PORTE,
                     ENABLE);
 
-    button_init_pin(BUTTON_LEFT_PORT, BUTTON_LEFT_PIN);
     button_init_pin(BUTTON_SELECT_PORT, BUTTON_SELECT_PIN);
     button_init_pin(BUTTON_DOWN_PORT, BUTTON_DOWN_PIN);
-    button_init_pin(BUTTON_RIGHT_PORT, BUTTON_RIGHT_PIN);
     button_init_pin(BUTTON_UP_PORT, BUTTON_UP_PIN);
 }
 
@@ -60,12 +52,12 @@ uint8_t button_fire_pressed(void)
 
 uint8_t button_left_pressed(void)
 {
-    return button_pressed(BUTTON_LEFT_PORT, BUTTON_LEFT_PIN);
+    return 0U;
 }
 
 uint8_t button_right_pressed(void)
 {
-    return button_pressed(BUTTON_RIGHT_PORT, BUTTON_RIGHT_PIN);
+    return 0U;
 }
 
 uint8_t button_up_pressed(void)
