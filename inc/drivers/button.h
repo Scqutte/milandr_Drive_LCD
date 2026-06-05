@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 void button_init(void);
+void button_update(void);
 uint8_t button_fire_pressed(void);
 uint8_t button_left_pressed(void);
 uint8_t button_right_pressed(void);

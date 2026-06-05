@@ -22,11 +22,11 @@ void player_update(Player *player, int16_t input_x, int16_t input_y)
         player->y = 0;
     }
 
-    if (player->x >= SCREEN_WIDTH) {
-        player->x = SCREEN_WIDTH - 1;
+    if (player->x > (SCREEN_WIDTH - PLAYER_WIDTH)) {
+        player->x = SCREEN_WIDTH - PLAYER_WIDTH;
     }
 
-    if (player->y >= SCREEN_HEIGHT) {
-        player->y = SCREEN_HEIGHT - 1;
+    if (player->y > (SCREEN_HEIGHT - PLAYER_HEIGHT)) {
+        player->y = SCREEN_HEIGHT - PLAYER_HEIGHT;
     }
 }
