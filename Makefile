@@ -85,7 +85,10 @@ vpath %.s $(sort $(dir $(ASM_SOURCES)))
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 
 flash: all
->openocd -s . -f openocd/openocd_flash.cfg -c "adapter speed 1000" -c "program $(BUILD_DIR)/$(TARGET).elf verify exit"
+>openocd -s . -f openocd/openocd_flash.cfg -c "adapter speed 1000" -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
+
+flash_recover: all
+>openocd -s . -f openocd/openocd_flash.cfg -c "adapter speed 1000" -c "reset_config srst_only srst_nogate connect_assert_srst" -c "init" -c "reset halt" -c "program $(BUILD_DIR)/$(TARGET).elf verify" -c "reset run" -c "exit"
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) | $(BUILD_DIR)
 >$(CC) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@

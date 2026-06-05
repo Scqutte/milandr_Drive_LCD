@@ -1,10 +1,14 @@
 #ifndef DRIVERS_SOUND_H
 #define DRIVERS_SOUND_H
 
+#include <stdint.h>
+
 void sound_init(void);
 void sound_play_shot(void);
 void sound_play_explosion(void);
 void sound_play_win(void);
+void sound_set_test_route(uint8_t route);
+void sound_play_test_party(void);
 void sound_update(void);
 
 #endif
