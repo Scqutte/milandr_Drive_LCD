@@ -23,7 +23,6 @@ void app_update(void)
     uint8_t fire_pressed;
     uint8_t fire_event;
 
-    button_update();
     joystick = joystick_read();
     fire_pressed = button_fire_pressed() || joystick.pressed;
     fire_event = fire_pressed && !previous_fire_pressed;

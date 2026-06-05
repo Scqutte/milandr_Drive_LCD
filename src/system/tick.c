@@ -28,6 +28,30 @@ uint32_t tick_get_ms(void)
     return tick_ms;
 }
 
+uint32_t tick_get_us(void)
+{
+    uint32_t ms_before;
+    uint32_t ms_after;
+    uint32_t ticks_left;
+    uint32_t ticks_per_ms;
+    uint32_t ticks_per_us;
+
+    do {
+        ms_before = tick_ms;
+        ticks_left = SysTick->VAL;
+        ms_after = tick_ms;
+    } while (ms_before != ms_after);
+
+    ticks_per_ms = SysTick->LOAD + 1U;
+    ticks_per_us = SystemCoreClock / 1000000U;
+
+    if (ticks_per_us == 0U) {
+        return ms_before * 1000U;
+    }
+
+    return (ms_before * 1000U) + ((ticks_per_ms - ticks_left) / ticks_per_us);
+}
+
 void tick_delay_ms(uint32_t delay_ms)
 {
     uint32_t start = tick_get_ms();

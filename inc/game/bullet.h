@@ -11,7 +11,7 @@ typedef struct {
 } Bullet;
 
 void bullets_init(Bullet bullets[MAX_BULLETS]);
-void bullets_fire(Bullet bullets[MAX_BULLETS], int16_t x, int16_t y);
+uint8_t bullets_fire(Bullet bullets[MAX_BULLETS], int16_t x, int16_t y);
 void bullets_update(Bullet bullets[MAX_BULLETS]);
 
 #endif

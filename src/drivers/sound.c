@@ -18,7 +18,7 @@
 #define SOUND_QUEUE_MAX 4U
 
 typedef struct {
-    uint16_t half_period_ms;
+    uint16_t half_period_us;
     uint16_t duration_ms;
 } SoundTone;
 
@@ -27,8 +27,8 @@ static uint8_t sound_queue_count;
 static uint8_t sound_queue_index;
 static uint8_t sound_output_high;
 static uint8_t sound_active;
-static uint32_t sound_next_toggle_ms;
-static uint32_t sound_tone_end_ms;
+static uint32_t sound_next_toggle_us;
+static uint32_t sound_tone_end_us;
 
 static uint16_t sound_limit(uint16_t value)
 {
@@ -75,7 +75,7 @@ void sound_init(void)
 static void sound_start_sequence(const SoundTone *tones, uint8_t count)
 {
     uint16_t i;
-    uint32_t now = tick_get_ms();
+    uint32_t now_us = tick_get_us();
 
     if (count > SOUND_QUEUE_MAX) {
         count = SOUND_QUEUE_MAX;
@@ -95,14 +95,14 @@ static void sound_start_sequence(const SoundTone *tones, uint8_t count)
     sound_queue_index = 0U;
     sound_output_high = 0U;
     sound_active = 1U;
-    sound_next_toggle_ms = now;
-    sound_tone_end_ms = now + sound_queue[0].duration_ms;
+    sound_next_toggle_us = now_us;
+    sound_tone_end_us = now_us + ((uint32_t)sound_queue[0].duration_ms * 1000U);
 }
 
 void sound_play_shot(void)
 {
     static const SoundTone tones[] = {
-        {1U, 55U},
+        {500U, 55U},
     };
 
     sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
@@ -111,8 +111,8 @@ void sound_play_shot(void)
 void sound_play_explosion(void)
 {
     static const SoundTone tones[] = {
-        {3U, 90U},
-        {2U, 90U},
+        {1200U, 90U},
+        {700U, 90U},
     };
 
     sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
@@ -121,9 +121,9 @@ void sound_play_explosion(void)
 void sound_play_win(void)
 {
     static const SoundTone tones[] = {
-        {3U, 90U},
-        {2U, 90U},
-        {1U, 120U},
+        {900U, 90U},
+        {650U, 90U},
+        {450U, 120U},
     };
 
     sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
@@ -131,15 +131,15 @@ void sound_play_win(void)
 
 void sound_update(void)
 {
-    uint32_t now;
+    uint32_t now_us;
 
     if (!sound_active) {
         return;
     }
 
-    now = tick_get_ms();
+    now_us = tick_get_us();
 
-    if ((int32_t)(now - sound_tone_end_ms) >= 0) {
+    if ((int32_t)(now_us - sound_tone_end_us) >= 0) {
         sound_queue_index++;
 
         if (sound_queue_index >= sound_queue_count) {
@@ -148,15 +148,15 @@ void sound_update(void)
             return;
         }
 
-        sound_tone_end_ms = now + sound_queue[sound_queue_index].duration_ms;
-        sound_next_toggle_ms = now;
+        sound_tone_end_us = now_us + ((uint32_t)sound_queue[sound_queue_index].duration_ms * 1000U);
+        sound_next_toggle_us = now_us;
     }
 
-    if ((int32_t)(now - sound_next_toggle_ms) >= 0) {
+    if ((int32_t)(now_us - sound_next_toggle_us) >= 0) {
         sound_output_high = (uint8_t)!sound_output_high;
         sound_write(sound_output_high ?
                     (SOUND_DAC_CENTER + SOUND_DAC_AMPLITUDE) :
                     (SOUND_DAC_CENTER - SOUND_DAC_AMPLITUDE));
-        sound_next_toggle_ms = now + sound_queue[sound_queue_index].half_period_ms;
+        sound_next_toggle_us = now_us + sound_queue[sound_queue_index].half_period_us;
     }
 }

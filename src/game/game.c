@@ -8,12 +8,14 @@
 #include "game/enemy.h"
 #include "game/player.h"
 #include "game/score.h"
+#include "system/tick.h"
 #include "ui/hud.h"
 
 static GameState state;
 static Player player;
 static Bullet bullets[MAX_BULLETS];
 static Enemy enemies[MAX_ENEMIES];
+static uint32_t next_shot_ms;
 
 static int16_t next_enemy_y(void)
 {
@@ -116,6 +118,7 @@ void game_init(void)
     bullets_init(bullets);
     enemies_init(enemies);
     score_reset();
+    next_shot_ms = 0U;
 }
 
 void game_start(void)
@@ -125,19 +128,26 @@ void game_start(void)
     bullets_init(bullets);
     enemies_init(enemies);
     score_reset();
+    next_shot_ms = 0U;
 }
 
 void game_update(JoystickState joystick, uint8_t fire_pressed)
 {
+    uint32_t now;
+
     if (state != GAME_STATE_PLAYING) {
         return;
     }
 
     player_update(&player, joystick.x, joystick.y);
+    now = tick_get_ms();
 
-    if (fire_pressed) {
-        bullets_fire(bullets, player.x + 1, player.y);
-        sound_play_shot();
+    if (fire_pressed && ((int32_t)(now - next_shot_ms) >= 0)) {
+        next_shot_ms = now + PLAYER_SHOT_COOLDOWN_MS;
+
+        if (bullets_fire(bullets, player.x + 1, player.y)) {
+            sound_play_shot();
+        }
     }
 
     bullets_update(bullets);

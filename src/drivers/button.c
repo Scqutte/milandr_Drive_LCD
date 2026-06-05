@@ -91,16 +91,6 @@ uint8_t button_fire_pressed(void)
     return button_pressed(0U);
 }
 
-uint8_t button_left_pressed(void)
-{
-    return 0U;
-}
-
-uint8_t button_right_pressed(void)
-{
-    return 0U;
-}
-
 uint8_t button_up_pressed(void)
 {
     return button_pressed(1U);

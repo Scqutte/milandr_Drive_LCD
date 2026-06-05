@@ -13,7 +13,7 @@ void bullets_init(Bullet bullets[MAX_BULLETS])
     }
 }
 
-void bullets_fire(Bullet bullets[MAX_BULLETS], int16_t x, int16_t y)
+uint8_t bullets_fire(Bullet bullets[MAX_BULLETS], int16_t x, int16_t y)
 {
     uint8_t i;
 
@@ -22,9 +22,11 @@ void bullets_fire(Bullet bullets[MAX_BULLETS], int16_t x, int16_t y)
             bullets[i].active = 1;
             bullets[i].x = x;
             bullets[i].y = y;
-            return;
+            return 1U;
         }
     }
+
+    return 0U;
 }
 
 void bullets_update(Bullet bullets[MAX_BULLETS])

@@ -40,6 +40,7 @@ src/ui/hud.c \
 src/ui/screen_game_over.c \
 src/ui/screen_win.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_dac.c \
+$(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_adc.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_port.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_rst_clk.c \
 $(MDR_DIR)/Libraries/MDR32F9Qx_StdPeriph_Driver/src/MDR32F9Qx_power.c \
@@ -110,6 +111,6 @@ $(BUILD_DIR):
 >mkdir -p $(BUILD_DIR)
 
 clean:
->rm -rf $(BUILD_DIR)
+>powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path '$(BUILD_DIR)') { Remove-Item -LiteralPath '$(BUILD_DIR)' -Recurse -Force }"
 
 -include $(wildcard $(BUILD_DIR)/*.d)
