@@ -16,5 +16,6 @@ void sound_play_test_low(void);
 void sound_play_test_high(void);
 void sound_play_test_scale(void);
 void sound_update(void);
+void sound_tick_100us(void);
 
 #endif

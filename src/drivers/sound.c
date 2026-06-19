@@ -16,6 +16,7 @@
 #define SOUND_DAC_ENABLE SOUND_DAC2_ENABLE
 #define SOUND_DAC_DATA_MASK 0x0FFFU
 #define SOUND_QUEUE_MAX 8U
+#define SOUND_ISR_PERIOD_US 100U
 #define NOTE_REST 0U
 #define NOTE_C5 956U
 #define NOTE_D5 852U
@@ -42,12 +43,12 @@ typedef struct {
 static SoundTone sound_queue[SOUND_QUEUE_MAX];
 static uint8_t sound_queue_count;
 static uint8_t sound_queue_index;
-static uint8_t sound_output_high;
-static uint8_t sound_active;
+static volatile uint8_t sound_output_high;
+static volatile uint8_t sound_active;
 static uint8_t sound_sequence_is_music;
 static uint8_t sound_music_enabled;
 static uint16_t sound_music_step;
-static uint32_t sound_next_toggle_us;
+static volatile uint32_t sound_toggle_elapsed_us;
 static uint32_t sound_tone_end_us;
 static uint32_t sound_next_music_ms;
 
@@ -137,6 +138,20 @@ static void sound_write(uint16_t value)
     MDR_DAC->DAC2_DATA = ((uint32_t)value & SOUND_DAC_DATA_MASK);
 }
 
+static void sound_begin_current_tone(void)
+{
+    sound_output_high = 0U;
+    sound_toggle_elapsed_us = 0U;
+
+    if (sound_queue[sound_queue_index].half_period_us == NOTE_REST) {
+        sound_write(SOUND_DAC_CENTER);
+        return;
+    }
+
+    sound_output_high = 1U;
+    sound_write(SOUND_DAC_CENTER + SOUND_DAC_AMPLITUDE);
+}
+
 static void sound_init_pins(void)
 {
     SOUND_DAC_PORT->ANALOG &= ~SOUND_DAC2_PIN_MASK;
@@ -161,6 +176,7 @@ void sound_init(void)
     sound_music_enabled = 0U;
     sound_music_step = 0U;
     sound_next_music_ms = 0U;
+    sound_toggle_elapsed_us = 0U;
     sound_write(SOUND_DAC_CENTER);
 }
 
@@ -174,10 +190,15 @@ static void sound_start_sequence(const SoundTone *tones, uint8_t count, uint8_t 
     }
 
     if (count == 0U) {
+        __disable_irq();
         sound_active = 0U;
         sound_write(SOUND_DAC_CENTER);
+        __enable_irq();
         return;
     }
+
+    __disable_irq();
+    sound_active = 0U;
 
     for (i = 0U; i < count; i++) {
         sound_queue[i] = tones[i];
@@ -186,14 +207,11 @@ static void sound_start_sequence(const SoundTone *tones, uint8_t count, uint8_t 
     sound_queue_count = count;
     sound_queue_index = 0U;
     sound_output_high = 0U;
-    sound_active = 1U;
     sound_sequence_is_music = is_music;
-    sound_next_toggle_us = now_us;
     sound_tone_end_us = now_us + ((uint32_t)sound_queue[0].duration_ms * 1000U);
-
-    if (sound_queue[0].half_period_us == NOTE_REST) {
-        sound_write(SOUND_DAC_CENTER);
-    }
+    sound_begin_current_tone();
+    sound_active = 1U;
+    __enable_irq();
 }
 
 void sound_music_start(void)
@@ -208,8 +226,10 @@ void sound_music_stop(void)
     sound_music_enabled = 0U;
 
     if (sound_sequence_is_music) {
+        __disable_irq();
         sound_active = 0U;
         sound_write(SOUND_DAC_CENTER);
+        __enable_irq();
     }
 }
 
@@ -347,33 +367,43 @@ void sound_update(void)
     now_us = tick_get_us();
 
     if ((int32_t)(now_us - sound_tone_end_us) >= 0) {
+        __disable_irq();
         sound_queue_index++;
 
         if (sound_queue_index >= sound_queue_count) {
             sound_active = 0U;
             sound_sequence_is_music = 0U;
             sound_write(SOUND_DAC_CENTER);
+            __enable_irq();
             sound_update_music();
             return;
         }
 
         sound_tone_end_us = now_us + ((uint32_t)sound_queue[sound_queue_index].duration_ms * 1000U);
-        sound_next_toggle_us = now_us;
-
-        if (sound_queue[sound_queue_index].half_period_us == NOTE_REST) {
-            sound_write(SOUND_DAC_CENTER);
-        }
+        sound_begin_current_tone();
+        __enable_irq();
     }
+}
 
-    if (sound_queue[sound_queue_index].half_period_us == NOTE_REST) {
+void sound_tick_100us(void)
+{
+    uint16_t half_period_us;
+
+    if (!sound_active) {
         return;
     }
 
-    if ((int32_t)(now_us - sound_next_toggle_us) >= 0) {
+    half_period_us = sound_queue[sound_queue_index].half_period_us;
+    if (half_period_us == NOTE_REST) {
+        return;
+    }
+
+    sound_toggle_elapsed_us += SOUND_ISR_PERIOD_US;
+    if (sound_toggle_elapsed_us >= half_period_us) {
+        sound_toggle_elapsed_us -= half_period_us;
         sound_output_high = (uint8_t)!sound_output_high;
         sound_write(sound_output_high ?
                     (SOUND_DAC_CENTER + SOUND_DAC_AMPLITUDE) :
                     (SOUND_DAC_CENTER - SOUND_DAC_AMPLITUDE));
-        sound_next_toggle_us = now_us + sound_queue[sound_queue_index].half_period_us;
     }
 }
