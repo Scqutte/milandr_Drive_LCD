@@ -78,7 +78,7 @@ static void update_collisions(void)
                 bullets[bullet_index].active = 0;
                 score_add(ENEMY_SCORE_VALUE);
                 respawn_enemy(&enemies[enemy_index]);
-                sound_play_explosion();
+                sound_play_enemy_hit();
             }
         }
 
@@ -99,14 +99,18 @@ static void update_collisions(void)
 
             if (player.lives == 0U) {
                 state = GAME_STATE_GAME_OVER;
-                sound_play_explosion();
+                sound_music_stop();
+                sound_play_game_over();
                 return;
             }
+
+            sound_play_life_lost();
         }
     }
 
     if (score_get() >= WIN_SCORE) {
         state = GAME_STATE_WIN;
+        sound_music_stop();
         sound_play_win();
     }
 }
@@ -119,6 +123,7 @@ void game_init(void)
     enemies_init(enemies);
     score_reset();
     next_shot_ms = 0U;
+    sound_music_stop();
 }
 
 void game_start(void)
@@ -129,6 +134,7 @@ void game_start(void)
     enemies_init(enemies);
     score_reset();
     next_shot_ms = 0U;
+    sound_music_start();
 }
 
 void game_update(JoystickState joystick, uint8_t fire_pressed)

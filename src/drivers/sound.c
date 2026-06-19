@@ -15,7 +15,24 @@
 #define SOUND_DAC2_ENABLE (1U << 3)
 #define SOUND_DAC_ENABLE SOUND_DAC2_ENABLE
 #define SOUND_DAC_DATA_MASK 0x0FFFU
-#define SOUND_QUEUE_MAX 4U
+#define SOUND_QUEUE_MAX 8U
+#define NOTE_REST 0U
+#define NOTE_C5 956U
+#define NOTE_D5 852U
+#define NOTE_E5 758U
+#define NOTE_F5 716U
+#define NOTE_G5 638U
+#define NOTE_A5 568U
+#define NOTE_B5 506U
+#define NOTE_C6 478U
+#define NOTE_D6 426U
+#define NOTE_E6 379U
+#define NOTE_G6 319U
+#define NOTE_E4 1517U
+#define NOTE_G4 1276U
+#define NOTE_A4 1136U
+#define NOTE_AS4 1073U   
+#define NOTE_B4 1012U
 
 typedef struct {
     uint16_t half_period_us;
@@ -27,8 +44,79 @@ static uint8_t sound_queue_count;
 static uint8_t sound_queue_index;
 static uint8_t sound_output_high;
 static uint8_t sound_active;
+static uint8_t sound_sequence_is_music;
+static uint8_t sound_music_enabled;
+static uint16_t sound_music_step;
 static uint32_t sound_next_toggle_us;
 static uint32_t sound_tone_end_us;
+static uint32_t sound_next_music_ms;
+
+static const SoundTone sound_music_loop[] = {
+    {NOTE_E5, 85U},  {NOTE_REST, 45U},
+    {NOTE_E5, 85U},  {NOTE_REST, 120U},
+    {NOTE_E5, 85U},  {NOTE_REST, 120U},
+
+    {NOTE_C5, 85U},  {NOTE_REST, 45U},
+    {NOTE_E5, 85U},  {NOTE_REST, 120U},
+
+    {NOTE_G5, 170U}, {NOTE_REST, 280U},
+    {NOTE_G4, 170U}, {NOTE_REST, 280U},
+
+    // C G E
+    {NOTE_C5, 170U}, {NOTE_REST, 170U},
+    {NOTE_G4, 170U}, {NOTE_REST, 170U},
+    {NOTE_E4, 170U}, {NOTE_REST, 170U},
+
+    // A B Bb A
+    {NOTE_A4, 170U},  {NOTE_REST, 45U},
+    {NOTE_B4, 170U},  {NOTE_REST, 45U},
+    {NOTE_AS4, 85U},  {NOTE_REST, 30U},
+    {NOTE_A4, 170U},  {NOTE_REST, 120U},
+
+    // G E G A F G
+    {NOTE_G4, 226U},
+    {NOTE_E5, 226U},
+    {NOTE_G5, 226U},
+    {NOTE_A5, 340U},  
+
+    {NOTE_F5, 170U},   
+    {NOTE_G5, 170U},   {NOTE_REST, 85U},
+
+    // E C D B
+    {NOTE_E5, 170U},  
+    {NOTE_C5, 85U},   
+    {NOTE_D5, 85U},   
+    {NOTE_B4, 170U},  {NOTE_REST, 85U},
+    // x2
+    // C G E
+    {NOTE_C5, 170U}, {NOTE_REST, 170U},
+    {NOTE_G4, 170U}, {NOTE_REST, 170U},
+    {NOTE_E4, 170U}, {NOTE_REST, 170U},
+
+    // A B Bb A
+    {NOTE_A4, 170U},  {NOTE_REST, 45U},
+    {NOTE_B4, 170U},  {NOTE_REST, 45U},
+    {NOTE_AS4, 85U},  {NOTE_REST, 30U},
+    {NOTE_A4, 170U},  {NOTE_REST, 120U},
+
+    // G E G A F G
+    {NOTE_G4, 226U},
+    {NOTE_E5, 226U},
+    {NOTE_G5, 226U},
+    {NOTE_A5, 340U},  
+
+    {NOTE_F5, 170U},   
+    {NOTE_G5, 170U},   {NOTE_REST, 85U},
+
+    // E C D B
+    {NOTE_E5, 170U},  
+    {NOTE_C5, 85U},   
+    {NOTE_D5, 85U},   
+    {NOTE_B4, 170U},  {NOTE_REST, 85U},
+
+};
+
+#define SOUND_MUSIC_STEPS ((uint16_t)(sizeof(sound_music_loop) / sizeof(sound_music_loop[0])))
 
 static uint16_t sound_limit(uint16_t value)
 {
@@ -69,10 +157,14 @@ void sound_init(void)
     sound_queue_count = 0U;
     sound_queue_index = 0U;
     sound_output_high = 0U;
+    sound_sequence_is_music = 0U;
+    sound_music_enabled = 0U;
+    sound_music_step = 0U;
+    sound_next_music_ms = 0U;
     sound_write(SOUND_DAC_CENTER);
 }
 
-static void sound_start_sequence(const SoundTone *tones, uint8_t count)
+static void sound_start_sequence(const SoundTone *tones, uint8_t count, uint8_t is_music)
 {
     uint16_t i;
     uint32_t now_us = tick_get_us();
@@ -95,8 +187,40 @@ static void sound_start_sequence(const SoundTone *tones, uint8_t count)
     sound_queue_index = 0U;
     sound_output_high = 0U;
     sound_active = 1U;
+    sound_sequence_is_music = is_music;
     sound_next_toggle_us = now_us;
     sound_tone_end_us = now_us + ((uint32_t)sound_queue[0].duration_ms * 1000U);
+
+    if (sound_queue[0].half_period_us == NOTE_REST) {
+        sound_write(SOUND_DAC_CENTER);
+    }
+}
+
+void sound_music_start(void)
+{
+    sound_music_enabled = 1U;
+    sound_music_step = 0U;
+    sound_next_music_ms = tick_get_ms();
+}
+
+void sound_music_stop(void)
+{
+    sound_music_enabled = 0U;
+
+    if (sound_sequence_is_music) {
+        sound_active = 0U;
+        sound_write(SOUND_DAC_CENTER);
+    }
+}
+
+void sound_play_menu(void)
+{
+    static const SoundTone tones[] = {
+        {650U, 35U},
+        {430U, 45U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
 }
 
 void sound_play_shot(void)
@@ -105,28 +229,110 @@ void sound_play_shot(void)
         {500U, 55U},
     };
 
-    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
 }
 
-void sound_play_explosion(void)
+void sound_play_enemy_hit(void)
 {
     static const SoundTone tones[] = {
-        {1200U, 90U},
-        {700U, 90U},
+        {1500U, 45U},
+        {1050U, 55U},
+        {700U, 65U},
     };
 
-    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+void sound_play_life_lost(void)
+{
+    static const SoundTone tones[] = {
+        {420U, 70U},
+        {760U, 90U},
+        {1200U, 120U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+void sound_play_game_over(void)
+{
+    static const SoundTone tones[] = {
+        {480U, 100U},
+        {680U, 110U},
+        {960U, 130U},
+        {1400U, 180U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
 }
 
 void sound_play_win(void)
 {
     static const SoundTone tones[] = {
-        {900U, 90U},
-        {650U, 90U},
-        {450U, 120U},
+        {700U, 80U},
+        {560U, 80U},
+        {470U, 80U},
+        {350U, 160U},
     };
 
-    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])));
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+void sound_play_test_low(void)
+{
+    static const SoundTone tones[] = {
+        {1000U, 900U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+void sound_play_test_high(void)
+{
+    static const SoundTone tones[] = {
+        {500U, 900U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+void sound_play_test_scale(void)
+{
+    static const SoundTone tones[] = {
+        {956U, 180U},
+        {852U, 180U},
+        {758U, 180U},
+        {716U, 180U},
+        {638U, 180U},
+        {568U, 180U},
+        {506U, 180U},
+        {478U, 260U},
+    };
+
+    sound_start_sequence(tones, (uint8_t)(sizeof(tones) / sizeof(tones[0])), 0U);
+}
+
+static void sound_update_music(void)
+{
+    uint32_t now_ms;
+
+    if (!sound_music_enabled || sound_active) {
+        return;
+    }
+
+    now_ms = tick_get_ms();
+
+    if ((int32_t)(now_ms - sound_next_music_ms) < 0) {
+        return;
+    }
+
+    sound_start_sequence(&sound_music_loop[sound_music_step], 1U, 1U);
+    sound_next_music_ms = now_ms + sound_music_loop[sound_music_step].duration_ms;
+    sound_music_step++;
+
+    if (sound_music_step >= SOUND_MUSIC_STEPS) {
+        sound_music_step = 0U;
+    }
 }
 
 void sound_update(void)
@@ -134,6 +340,7 @@ void sound_update(void)
     uint32_t now_us;
 
     if (!sound_active) {
+        sound_update_music();
         return;
     }
 
@@ -144,12 +351,22 @@ void sound_update(void)
 
         if (sound_queue_index >= sound_queue_count) {
             sound_active = 0U;
+            sound_sequence_is_music = 0U;
             sound_write(SOUND_DAC_CENTER);
+            sound_update_music();
             return;
         }
 
         sound_tone_end_us = now_us + ((uint32_t)sound_queue[sound_queue_index].duration_ms * 1000U);
         sound_next_toggle_us = now_us;
+
+        if (sound_queue[sound_queue_index].half_period_us == NOTE_REST) {
+            sound_write(SOUND_DAC_CENTER);
+        }
+    }
+
+    if (sound_queue[sound_queue_index].half_period_us == NOTE_REST) {
+        return;
     }
 
     if ((int32_t)(now_us - sound_next_toggle_us) >= 0) {

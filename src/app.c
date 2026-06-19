@@ -33,6 +33,7 @@ void app_update(void)
         case GAME_STATE_MENU:
             menu_update(joystick, fire_event);
             if (menu_start_requested()) {
+                sound_play_menu();
                 game_start();
             }
             break;
@@ -44,6 +45,7 @@ void app_update(void)
         case GAME_STATE_WIN:
             screen_win_update(fire_event);
             if (screen_win_restart_requested()) {
+                sound_play_menu();
                 game_set_state(GAME_STATE_MENU);
             }
             break;
@@ -51,6 +53,7 @@ void app_update(void)
         case GAME_STATE_GAME_OVER:
             screen_game_over_update(fire_event);
             if (screen_game_over_restart_requested()) {
+                sound_play_menu();
                 game_set_state(GAME_STATE_MENU);
             }
             break;
