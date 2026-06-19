@@ -20,11 +20,13 @@ void app_update(void)
 {
     static uint8_t previous_fire_pressed;
     JoystickState joystick;
+    uint8_t buttons;
     uint8_t fire_pressed;
     uint8_t fire_event;
 
+    buttons = button_state();
     joystick = joystick_read();
-    fire_pressed = button_fire_pressed() || joystick.pressed;
+    fire_pressed = ((buttons & BUTTON_STATE_FIRE) != 0U) || joystick.pressed;
     fire_event = fire_pressed && !previous_fire_pressed;
 
     switch (game_get_state()) {

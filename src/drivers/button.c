@@ -16,16 +16,18 @@
 typedef struct {
     MDR_PORT_TypeDef *port;
     uint32_t pin;
+    uint8_t mask;
     uint8_t raw_pressed;
     uint8_t stable_pressed;
     uint32_t changed_at_ms;
 } ButtonDebounce;
 
 static ButtonDebounce buttons[] = {
-    {BUTTON_SELECT_PORT, BUTTON_SELECT_PIN, 0U, 0U, 0U},
-    {BUTTON_UP_PORT, BUTTON_UP_PIN, 0U, 0U, 0U},
-    {BUTTON_DOWN_PORT, BUTTON_DOWN_PIN, 0U, 0U, 0U},
+    {BUTTON_SELECT_PORT, BUTTON_SELECT_PIN, BUTTON_STATE_FIRE, 0U, 0U, 0U},
+    {BUTTON_UP_PORT, BUTTON_UP_PIN, BUTTON_STATE_UP, 0U, 0U, 0U},
+    {BUTTON_DOWN_PORT, BUTTON_DOWN_PIN, BUTTON_STATE_DOWN, 0U, 0U, 0U},
 };
+static uint8_t button_stable_state;
 
 static void button_init_pin(MDR_PORT_TypeDef *port, uint32_t pin)
 {
@@ -50,11 +52,6 @@ static uint8_t button_read_raw(MDR_PORT_TypeDef *port, uint32_t pin)
     return (PORT_ReadInputDataBit(port, pin) == 0U) ? 1U : 0U;
 }
 
-static uint8_t button_pressed(uint8_t index)
-{
-    return buttons[index].stable_pressed;
-}
-
 void button_init(void)
 {
     RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTC |
@@ -70,6 +67,7 @@ void button_init(void)
 void button_update(void)
 {
     uint8_t i;
+    uint8_t next_state = 0U;
     uint32_t now = tick_get_ms();
 
     for (i = 0U; i < (uint8_t)(sizeof(buttons) / sizeof(buttons[0])); i++) {
@@ -83,20 +81,31 @@ void button_update(void)
         if ((now - buttons[i].changed_at_ms) >= BUTTON_DEBOUNCE_MS) {
             buttons[i].stable_pressed = buttons[i].raw_pressed;
         }
+
+        if (buttons[i].stable_pressed) {
+            next_state |= buttons[i].mask;
+        }
     }
+
+    button_stable_state = next_state;
+}
+
+uint8_t button_state(void)
+{
+    return button_stable_state;
 }
 
 uint8_t button_fire_pressed(void)
 {
-    return button_pressed(0U);
+    return (button_stable_state & BUTTON_STATE_FIRE) ? 1U : 0U;
 }
 
 uint8_t button_up_pressed(void)
 {
-    return button_pressed(1U);
+    return (button_stable_state & BUTTON_STATE_UP) ? 1U : 0U;
 }
 
 uint8_t button_down_pressed(void)
 {
-    return button_pressed(2U);
+    return (button_stable_state & BUTTON_STATE_DOWN) ? 1U : 0U;
 }

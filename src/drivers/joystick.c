@@ -96,11 +96,13 @@ JoystickState joystick_read(void)
     state.x = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_X_CHANNEL));
     state.y = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_Y_CHANNEL));
 #else
-    if (button_up_pressed()) {
+    uint8_t buttons = button_state();
+
+    if ((buttons & BUTTON_STATE_UP) != 0U) {
         state.y -= PLAYER_SPEED;
     }
 
-    if (button_down_pressed()) {
+    if ((buttons & BUTTON_STATE_DOWN) != 0U) {
         state.y += PLAYER_SPEED;
     }
 #endif
