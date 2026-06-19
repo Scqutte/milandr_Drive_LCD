@@ -109,3 +109,21 @@ JoystickState joystick_read(void)
 
     return state;
 }
+
+uint16_t joystick_read_x_raw(void)
+{
+#if INPUT_MODE == INPUT_MODE_ADC_JOYSTICK
+    return joystick_read_adc(JOYSTICK_ADC_X_CHANNEL);
+#else
+    return JOYSTICK_ADC_CENTER;
+#endif
+}
+
+uint16_t joystick_read_y_raw(void)
+{
+#if INPUT_MODE == INPUT_MODE_ADC_JOYSTICK
+    return joystick_read_adc(JOYSTICK_ADC_Y_CHANNEL);
+#else
+    return JOYSTICK_ADC_CENTER;
+#endif
+}

@@ -11,5 +11,7 @@ typedef struct {
 
 void joystick_init(void);
 JoystickState joystick_read(void);
+uint16_t joystick_read_x_raw(void);
+uint16_t joystick_read_y_raw(void);
 
 #endif
