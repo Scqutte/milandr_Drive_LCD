@@ -7,6 +7,7 @@
 #include "MDR32F9Qx_adc.h"
 #include "MDR32F9Qx_port.h"
 #include "MDR32F9Qx_rst_clk.h"
+#include "MDR32Fx.h"
 
 #define JOYSTICK_ADC_MASK 0x0FFFU
 
@@ -35,7 +36,7 @@ static uint16_t joystick_read_adc(uint32_t channel)
     ADC1_SetChannel(channel);
     ADC1_Start();
 
-    while ((ADC1_GetFlagStatus(ADC1_FLAG_END_OF_CONVERSION) == RESET) && (timeout > 0U)) {
+    while (((MDR_ADC->ADC1_CFG & ADC1_CFG_REG_GO) != 0U) && (timeout > 0U)) {
         timeout--;
     }
 
@@ -46,17 +47,21 @@ static uint16_t joystick_read_adc(uint32_t channel)
     return (uint16_t)(ADC1_GetResult() & JOYSTICK_ADC_MASK);
 }
 
-static int16_t joystick_adc_to_step(uint16_t value)
+static int16_t joystick_adc_to_step(uint16_t value, uint8_t inverted)
 {
-    if (value > (JOYSTICK_ADC_CENTER + JOYSTICK_ADC_DEADZONE)) {
-        return PLAYER_SPEED;
+    int16_t step = 0;
+
+    if (value < JOYSTICK_ADC_LOW_THRESHOLD) {
+        step = -PLAYER_SPEED;
+    } else if (value > JOYSTICK_ADC_HIGH_THRESHOLD) {
+        step = PLAYER_SPEED;
     }
 
-    if (value < (JOYSTICK_ADC_CENTER - JOYSTICK_ADC_DEADZONE)) {
-        return -PLAYER_SPEED;
+    if (inverted) {
+        step = (int16_t)-step;
     }
 
-    return 0;
+    return step;
 }
 #endif
 
@@ -93,8 +98,10 @@ JoystickState joystick_read(void)
     state.pressed = 0;
 
 #if INPUT_MODE == INPUT_MODE_ADC_JOYSTICK
-    state.x = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_X_CHANNEL));
-    state.y = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_Y_CHANNEL));
+    state.x = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_X_CHANNEL),
+                                   JOYSTICK_INVERT_X);
+    state.y = joystick_adc_to_step(joystick_read_adc(JOYSTICK_ADC_Y_CHANNEL),
+                                   JOYSTICK_INVERT_Y);
 #else
     uint8_t buttons = button_state();
 
